@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "piirip"
-version = "0.1.0"
+version = "1.0.0"
 description = "PII-rip: redact PII from documents (DOCX, PDF, TXT, ODT, XLSX, MD, HTML) using Presidio"
 readme = "README.md"
 requires-python = ">=3.10"
