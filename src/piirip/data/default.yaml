@@ -1,0 +1,19 @@
+# Common PII entities (Presidio entity names).
+description: Common PII entities
+entities:
+  - PERSON
+  - EMAIL_ADDRESS
+  - PHONE_NUMBER
+  - LOCATION
+  - CREDIT_CARD
+  - IBAN_CODE
+  - IP_ADDRESS
+  - URL
+  - IT_FISCAL_CODE
+  - US_SSN
+  - US_PASSPORT
+  - US_DRIVER_LICENSE
+  - US_BANK_NUMBER
+  - UK_NHS
+  - MEDICAL_LICENSE
+  - CRYPTO

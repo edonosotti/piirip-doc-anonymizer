@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "piirip"
+version = "0.1.0"
+description = "PII-rip: redact PII from documents (DOCX, PDF, TXT, ODT, XLSX, MD, HTML) using Presidio"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "presidio-analyzer>=2.2.360",
+  "spacy>=3.7",
+  "python-docx",
+  "openpyxl",
+  "odfpy",
+  "beautifulsoup4",
+  "pymupdf",
+  "pyyaml",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+piirip = "piirip.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+piirip = ["data/*.yaml"]
