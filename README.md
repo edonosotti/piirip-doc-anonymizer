@@ -1,5 +1,13 @@
 ![PII-rip Logo](logo.png)
 
+[![CodeFactor](https://www.codefactor.io/repository/github/edonosotti/piirip-doc-anonymizer/badge)](https://www.codefactor.io/repository/github/edonosotti/piirip-doc-anonymizer)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/ae61b6f53af34730b7f6eb21336dbc1c)](https://app.codacy.com/gh/edonosotti/piirip-doc-anonymizer/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=edonosotti_piirip-doc-anonymizer&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=edonosotti_piirip-doc-anonymizer)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=edonosotti_piirip-doc-anonymizer&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=edonosotti_piirip-doc-anonymizer)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=edonosotti_piirip-doc-anonymizer&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=edonosotti_piirip-doc-anonymizer)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=edonosotti_piirip-doc-anonymizer&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=edonosotti_piirip-doc-anonymizer)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=edonosotti_piirip-doc-anonymizer&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=edonosotti_piirip-doc-anonymizer)
+
 # PII-rip - Document Anonymizer
 
 Command-line tool that redacts Personally Identifiable Information (PII) from
@@ -24,6 +32,13 @@ particular purpose. Use at your own risk.
 ```bash
 pip install -e .
 python -m spacy download en_core_web_lg
+```
+
+For reproducible installs, use the committed lock file (`uv.lock`):
+
+```bash
+uv sync --extra dev    # installs the exact locked versions
+uv lock --upgrade      # refresh the lock file when updating dependencies
 ```
 
 ## Usage
