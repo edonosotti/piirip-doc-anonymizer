@@ -21,9 +21,14 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest"]
+gui = ["tkinterdnd2"]
+build = ["pyinstaller", "tkinterdnd2"]
 
 [project.scripts]
 piirip = "piirip.cli:main"
+
+[project.gui-scripts]
+piirip-gui = "piirip.gui:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

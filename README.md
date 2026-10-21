@@ -99,6 +99,34 @@ piirip --list-entities -p my_playbook.yaml
 | `--list-entities`               | Print the entities of the selected playbook (one per line) and exit; no files needed.                                                                                                             |
 | `--version`, `-h`               | Show version / help.                                                                                                                                                                              |
 
+## Desktop app (GUI)
+
+A simple desktop app is also available: drag and drop a document onto the window
+(or click it to pick a file), wait for the redaction to finish, then choose where
+to save the redacted copy. It uses the `default` playbook and English model.
+
+```bash
+pip install -e .[gui]
+piirip-gui
+```
+
+### Standalone executables
+
+Executables for Windows, macOS and Linux are built by the
+[Build GUI executables](.github/workflows/build-gui.yml) GitHub Actions workflow
+(run it manually or push a `v*` tag, then download the artifacts). To build one
+for your current OS:
+
+```bash
+pip install -e .[build]
+python -m spacy download en_core_web_lg
+./packaging/build.sh # output in dist/PII-rip/
+```
+
+The bundle includes the spaCy model, so it is large (~1 GB uncompressed). The
+executables are unsigned: Windows SmartScreen and macOS Gatekeeper will warn on
+first launch.
+
 ## Playbooks
 
 - `default`: common entities (see [src/piirip/data/default.yaml](src/piirip/data/default.yaml))

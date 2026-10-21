@@ -63,6 +63,17 @@ def test_csv(tmp_path):
     assert not any(secret in "\n".join(cell for row in rows for cell in row) for secret in SECRETS)
 
 
+def test_gui_redact_file(tmp_path, redactor):
+    pytest.importorskip("tkinter")
+    from piirip.gui import redact_file
+
+    src = tmp_path / "a.txt"
+    src.write_text(TEXT)
+    dst = tmp_path / "out.txt"
+    assert redact_file(src, dst, redactor) > 0
+    assert not any(s in dst.read_text() for s in SECRETS)
+
+
 def test_docx_split_runs(tmp_path):
     import docx
 
