@@ -1,10 +1,21 @@
 """Format handlers: each reads `src`, redacts PII and writes `dst`."""
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 from typing import Callable
 
 from .engine import Redactor
+
+
+def _csv(src: Path, dst: Path, r: Redactor) -> None:
+    with src.open(encoding="utf-8", newline="") as source, dst.open(
+        "w", encoding="utf-8", newline=""
+    ) as target:
+        reader = csv.reader(source)
+        writer = csv.writer(target)
+        for row in reader:
+            writer.writerow([r.redact_text(cell) for cell in row])
 
 
 def _text(src: Path, dst: Path, r: Redactor) -> None:
@@ -179,6 +190,7 @@ def _pdf(src: Path, dst: Path, r: Redactor) -> None:
 
 
 HANDLERS: dict[str, Callable[[Path, Path, Redactor], None]] = {
+    ".csv": _csv,
     ".txt": _text,
     ".md": _text,
     ".markdown": _text,

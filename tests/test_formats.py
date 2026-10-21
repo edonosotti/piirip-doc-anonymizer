@@ -1,3 +1,4 @@
+import csv
 from pathlib import Path
 
 import pytest
@@ -41,6 +42,25 @@ def test_txt_md_html(tmp_path):
         f.write_text(content)
         out = run(f).read_text()
         assert not any(s in out for s in SECRETS), out
+
+
+def test_csv(tmp_path):
+    f = tmp_path / "a.csv"
+    with f.open("w", encoding="utf-8", newline="") as source:
+        writer = csv.writer(source)
+        writer.writerow(["id", "details", "notes"])
+        writer.writerow(["1", TEXT, "Quoted, value\nwith another line"])
+        writer.writerow(["2", "john.smith@example.com", "42"])
+
+    with run(f).open(encoding="utf-8", newline="") as output:
+        rows = list(csv.reader(output))
+
+    assert len(rows) == 3
+    assert rows[0] == ["id", "details", "notes"]
+    assert rows[1][0] == "1"
+    assert rows[1][2] == "Quoted, value\nwith another line"
+    assert rows[2] == ["2", "<EMAIL_ADDRESS>", "42"]
+    assert not any(secret in "\n".join(cell for row in rows for cell in row) for secret in SECRETS)
 
 
 def test_docx_split_runs(tmp_path):

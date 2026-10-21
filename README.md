@@ -13,7 +13,7 @@
 Command-line tool that redacts Personally Identifiable Information (PII) from
 documents using [Presidio](https://github.com/data-privacy-stack/presidio).
 
-Supported file formats: `DOCX`, `PDF`, `TXT`, `ODT`, `XLSX`, `MD`, `HTML`.
+Supported file formats: `DOCX`, `PDF`, `TXT`, `ODT`, `XLSX`, `MD`, `HTML`, `CSV`.
 
 Check the [Presidio Entities](https://presidio.dataprivacystack.org/supported_entities/)
 for more details on the types of data that can be redacted.
@@ -85,19 +85,19 @@ piirip --list-entities -p my_playbook.yaml
 
 ### Options
 
-|            Option             |                                                                              Description                                                                              |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `FILE ...`                    | One or more documents. Supported extensions: `.docx .pdf .txt .odt .xlsx .md .markdown .html .htm`.                                                                   |
-| `-p, --playbook NAME_OR_PATH` | Which entities to redact. `default` (the default), `all`, or the path to a YAML playbook. See [Playbooks](#playbooks).                                                |
-| `-o, --output-dir DIR`        | Write outputs to `DIR` (created if needed) instead of next to the input. Files are still named `NAME.redacted.EXT`. Ignored with `--in-place`.                        |
-| `--in-place`                  | Overwrite each input file with its redacted version (written to a temp file first, so a failure does not corrupt the original).                                       |
-| `-l, --language CODE`         | Language of the documents (default `en`). Must match the spaCy model; it drives name/location detection and which recognizers are active.                             |
-| `-m, --model NAME`            | spaCy model used for NER (default `en_core_web_lg`). Must be installed, e.g. `python -m spacy download NAME`.                                                         |
-| `-t, --threshold SCORE`       | Minimum Presidio confidence, 0.0-1.0 (default `0.35`, or the playbook's `score_threshold`). Higher = fewer false positives but more missed PII; lower = the opposite. |
-| `--generic`                   | Replace matches with `<REDACTED>` instead of `<ENTITY_TYPE>`, so the kind of data removed is not revealed.                                                            |
-| `--pdf-style {box,placeholder}` | PDF only. `box` (default) paints a black box over each match; `placeholder` paints a white box containing the replacement text (`<PERSON>`, or `<REDACTED>` with `--generic`), with the font shrunk to fit the original text's space. In both cases the original text is permanently removed. |
-| `--list-entities`             | Print the entities of the selected playbook (one per line) and exit; no files needed.                                                                                 |
-| `--version`, `-h`             | Show version / help.                                                                                                                                                  |
+|            Option               |                                                                              Description                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FILE ...`                      | One or more documents. Supported extensions: `.docx .pdf .txt .odt .xlsx .md .markdown .html .htm .csv`.                                                                                          |
+| `-p, --playbook NAME_OR_PATH`   | Which entities to redact. `default` (the default), `all`, or the path to a YAML playbook. See [Playbooks](#playbooks).                                                                            |
+| `-o, --output-dir DIR`          | Write outputs to `DIR` (created if needed) instead of next to the input. Files are still named `NAME.redacted.EXT`. Ignored with `--in-place`.                                                    |
+| `--in-place`                    | Overwrite each input file with its redacted version (written to a temp file first, so a failure does not corrupt the original).                                                                   |
+| `-l, --language CODE`           | Language of the documents (default `en`). Must match the spaCy model; it drives name/location detection and which recognizers are active.                                                         |
+| `-m, --model NAME`              | spaCy model used for NER (default `en_core_web_lg`). Must be installed, e.g. `python -m spacy download NAME`.                                                                                     |
+| `-t, --threshold SCORE`         | Minimum Presidio confidence, 0.0-1.0 (default `0.35`, or the playbook's `score_threshold`). Higher = fewer false positives but more missed PII; lower = the opposite.                             |
+| `--generic`                     | Replace matches with `<REDACTED>` instead of `<ENTITY_TYPE>`, so the kind of data removed is not revealed.                                                                                        |
+| `--pdf-style {box,placeholder}` | PDF only. `box` (default) paints a black box over removed text; `placeholder` replaces it with placeholders (`<PERSON>`, or `<REDACTED>` with `--generic`). Original text is permanently removed. |
+| `--list-entities`               | Print the entities of the selected playbook (one per line) and exit; no files needed.                                                                                                             |
+| `--version`, `-h`               | Show version / help.                                                                                                                                                                              |
 
 ## Playbooks
 
@@ -117,6 +117,7 @@ score_threshold: 0.4 # optional
 - `XLSX`: string cells, comments and hyperlinks. Formulas are left untouched.
 - `ODT`: paragraphs and headers/footers.
 - `HTML`: text nodes plus alt, title, href, value and similar attributes. HTML comments are removed.
+- `CSV`: text in each field is redacted independently; rows and columns are preserved.
 - `PDF`: matched text is by default permanently removed (black boxes, not just covered).
   Placeholders can be used in place of the blackboxes, check the Usage information above.
   Scanned PDFs would need OCR first, which isn't included.
