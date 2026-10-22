@@ -112,17 +112,21 @@ score_threshold: 0.4 # optional
 
 ## How complex document formats are handled and redacted
 
-- `DOCX`: body, tables, headers, footers, comments and footnotes.
-  PII split across formatting runs is still caught, and author metadata is cleared.
-- `XLSX`: string cells, comments and hyperlinks. Formulas are left untouched.
-- `ODT`: paragraphs and headers/footers.
+- `DOCX`: body, tables, headers, footers, comments, footnotes and tracked
+  deletions. PII split across formatting runs is still caught; identity metadata
+  is cleared and other XML text and metadata are redacted.
+- `XLSX`: string cells (including hidden sheets), comments, hyperlinks and
+  package metadata. Formulas are left untouched.
+- `ODT`: paragraphs, headers/footers, comments and package metadata.
 - `HTML`: text nodes plus alt, title, href, value and similar attributes. HTML comments are removed.
 - `CSV`: text in each field is redacted independently; rows and columns are preserved.
-- `PDF`: matched text is by default permanently removed (black boxes, not just covered).
-  Placeholders can be used in place of the blackboxes, check the Usage information above.
-  Scanned PDFs would need OCR first, which isn't included.
+- `PDF`: matched page text is by default permanently removed (black boxes, not just
+  covered). Annotation comments, form fields, links and bookmarks are also redacted;
+  document metadata is cleared. Placeholders can be used in place of black boxes;
+  see Usage above. Scanned PDFs would need OCR first, which isn't included.
 
-DOCX/XLSX/PDF author metadata is cleared.
+Identity fields in office-package XML and DOCX/XLSX/PDF author metadata are cleared.
+Binary embedded objects and files are not inspected.
 Country-specific recognizers (in `all`) are applied to the chosen `--language`.
 
 ## Tests

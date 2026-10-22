@@ -3,9 +3,99 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
+import tempfile
 from typing import Callable
+from zipfile import ZipFile
 
 from .engine import Redactor
+
+
+_IDENTITY_FIELDS = {
+    "author",
+    "creator",
+    "initialcreator",
+    "lastmodifiedby",
+    "modifiedby",
+    "printedby",
+}
+_TEXT_ATTRIBUTES = {
+    "alt",
+    "alttext",
+    "caption",
+    "content",
+    "description",
+    "descr",
+    "email",
+    "href",
+    "hyperlink",
+    "keywords",
+    "label",
+    "prompt",
+    "subject",
+    "title",
+    "tooltip",
+    "url",
+    "val",
+    "value",
+}
+
+
+def _local_name(name: str) -> str:
+    return name.rsplit("}", 1)[-1].replace("_", "").replace("-", "").lower()
+
+
+def _redact_xml_package(path: Path, r: Redactor, *, skip_formulas: bool = False) -> None:
+    """Redact text and identity metadata throughout an office Open XML/ODF package."""
+    from lxml import etree
+
+    parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False)
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+
+        with ZipFile(path) as source, ZipFile(temporary_path, "w") as target:
+            for item in source.infolist():
+                data = source.read(item)
+                if item.filename.lower().endswith((".xml", ".rels")):
+                    root = etree.fromstring(data, parser)
+                    for element in root.iter():
+                        local_name = _local_name(element.tag) if isinstance(element.tag, str) else ""
+                        if skip_formulas and local_name == "f":
+                            continue
+                        is_identity = local_name in _IDENTITY_FIELDS
+                        if is_identity and element.text:
+                            element.text = ""
+                        elif element.text and element.text.strip():
+                            element.text = r.redact_text(element.text)
+                        if element.tail and element.tail.strip():
+                            element.tail = r.redact_text(element.tail)
+                        external_relationship = (
+                            local_name == "relationship"
+                            and element.get("TargetMode") == "External"
+                        )
+                        for name, value in list(element.attrib.items()):
+                            attribute_name = _local_name(name)
+                            if attribute_name in _IDENTITY_FIELDS:
+                                element.attrib[name] = ""
+                            elif value.strip() and (
+                                attribute_name in _TEXT_ATTRIBUTES
+                                or (external_relationship and attribute_name == "target")
+                            ):
+                                element.attrib[name] = r.redact_text(value)
+                    data = etree.tostring(
+                        root.getroottree(),
+                        encoding="UTF-8",
+                        xml_declaration=True,
+                    )
+                target.writestr(item, data)
+
+        temporary_path.replace(path)
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
 
 def _csv(src: Path, dst: Path, r: Redactor) -> None:
@@ -60,18 +150,20 @@ def _docx(src: Path, dst: Path, r: Redactor) -> None:
         if rel.reltype.endswith(("/comments", "/footnotes", "/endnotes")) and hasattr(rel.target_part, "element"):
             roots.append(rel.target_part.element)
     seen = set()
+    text_tags = {qn("w:t"), qn("w:delText"), qn("w:instrText")}
     for root in roots:
         if id(root) in seen:
             continue
         seen.add(id(root))
         for p in root.iter(qn("w:p")):
-            ts = [t for t in p.iter(qn("w:t")) if _owner_paragraph(t, qn) is p]
+            ts = [t for t in p.iter() if t.tag in text_tags and _owner_paragraph(t, qn) is p]
             if ts:
                 r.redact_segments(ts, lambda t: t.text, _set_wt)
     cp = doc.core_properties
     for attr in ("author", "last_modified_by", "comments", "title", "subject", "keywords"):
         setattr(cp, attr, "")
     doc.save(str(dst))
+    _redact_xml_package(dst, r)
 
 
 def _owner_paragraph(el, qn):
@@ -103,6 +195,7 @@ def _xlsx(src: Path, dst: Path, r: Redactor) -> None:
     wb.properties.creator = None
     wb.properties.lastModifiedBy = None
     wb.save(str(dst))
+    _redact_xml_package(dst, r, skip_formulas=True)
 
 
 def _odt(src: Path, dst: Path, r: Redactor) -> None:
@@ -145,6 +238,7 @@ def _odt(src: Path, dst: Path, r: Redactor) -> None:
     for part in (doc.styles, doc.masterstyles):  # headers/footers
         walk(part)
     doc.save(str(dst))
+    _redact_xml_package(dst, r)
 
 
 def _placeholder_annot(page, rect, label: str, fitz) -> None:
@@ -165,6 +259,45 @@ def _pdf(src: Path, dst: Path, r: Redactor) -> None:
 
     doc = fitz.open(str(src))
     for page in doc:
+        for annot in page.annots() or ():
+            info = annot.info
+            annot.set_info(
+                content=r.redact_text(info.get("content", "")),
+                title="<REDACTED>",
+                subject=r.redact_text(info.get("subject", "")),
+            )
+            annot.update()
+        for widget in page.widgets() or ():
+            field_name = widget.field_name
+            field_label = widget.field_label
+            if field_name:
+                parent_type, parent_value = doc.xref_get_key(widget.xref, "Parent")
+                field_xrefs = [widget.xref]
+                if parent_type == "xref":
+                    field_xrefs.append(int(parent_value.split()[0]))
+                for xref in field_xrefs:
+                    if doc.xref_get_key(xref, "T")[0] == "string":
+                        doc.xref_set_key(
+                            xref, "T", fitz.get_pdf_str(r.redact_text(field_name))
+                        )
+                    if doc.xref_get_key(xref, "TU")[0] == "string":
+                        doc.xref_set_key(
+                            xref, "TU", fitz.get_pdf_str(r.redact_text(field_label))
+                        )
+            if isinstance(widget.field_value, str):
+                widget.field_value = r.redact_text(widget.field_value)
+            widget.update()
+        for link in page.get_links():
+            changed = False
+            for field in ("uri", "file"):
+                value = link.get(field)
+                if isinstance(value, str) and value:
+                    redacted = r.redact_text(value)
+                    if redacted != value:
+                        link[field] = redacted
+                        changed = True
+            if changed:
+                page.update_link(link)
         text = page.get_text()
         spans = r.find(text)
         r.count += len(spans)
@@ -185,7 +318,13 @@ def _pdf(src: Path, dst: Path, r: Redactor) -> None:
                         _placeholder_annot(page, rect, label if first else "", fitz)
                 first = False
         page.apply_redactions()
+    toc = doc.get_toc(simple=False)
+    for entry in toc:
+        entry[1] = r.redact_text(entry[1])
+    if toc:
+        doc.set_toc(toc)
     doc.set_metadata({})
+    doc.set_xml_metadata("")
     doc.save(str(dst), garbage=4, deflate=True, clean=True)
 
 
